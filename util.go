@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"image/color"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -135,14 +136,25 @@ func Move(g *Game, d Direction) {
 
 }
 
-func CastCellRef(cells []*Cell) []Cell {
-	casted := make([]Cell, len(cells))
+func GetRandomCell(cells [][]Cell) (Cell, error) {
+	emptyCells := make([]Cell, 0, CELL_COUNT*CELL_COUNT)
 
-	for i, cell := range cells {
-		casted[i] = *cell
+	for i, row := range cells {
+		for j := range row {
+			cell := &cells[i][j]
+
+			if !cell.isRendered {
+				newCell := Cell{pos_x: i, pos_y: j}
+				emptyCells = append(emptyCells, newCell)
+			}
+		}
 	}
 
-	return casted
+	if len(emptyCells) <= 0 {
+		return Cell{}, errors.New("no empty cells found")
+	}
+
+	return emptyCells[rand.IntN(len(emptyCells))], nil
 }
 
 // Merge a horizontal slice
@@ -164,8 +176,6 @@ func MergeSlice(slice []Cell, to int) (int, error) {
 			lc, rc := &slice[i], &slice[i+1]
 
 			if (lc.isRendered && rc.isRendered) && (lc.val == rc.val) {
-				fmt.Printf("%s MERGE %s\n", FormatCell(*lc), FormatCell(*rc))
-				fmt.Printf("%p - %p\n", lc, rc)
 				lc.val += rc.val
 				rc.isRendered = false
 				rc.val = 0

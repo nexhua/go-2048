@@ -60,7 +60,18 @@ func (g *Game) Update() error {
 	dir, err := GetDirection()
 	if err == nil {
 		Move(g, dir)
+
+		// TODO If Move did not move any cells, no new value should be generated
+		emptyCell, err := GetRandomCell(g.board.cells)
+
+		if err == nil {
+			selectedCell := &g.board.cells[emptyCell.pos_x][emptyCell.pos_y]
+			selectedCell.isRendered = true
+			selectedCell.val = 2
+		}
 	}
+
+	// TODO Detect if user can do any movements, if not game over
 
 	return nil
 }
@@ -135,45 +146,53 @@ func initGame() *Game {
 	b := Board{bg: background, cells: cells}
 	g := Game{board: b}
 
-	cell := &g.board.cells[0][0]
-	cell.isRendered = true
-	cell.val = 2
+	emptyCell, err := GetRandomCell(g.board.cells)
 
-	cell = &g.board.cells[1][0]
-	cell.isRendered = true
-	cell.val = 2
+	if err == nil {
+		selectedCell := &g.board.cells[emptyCell.pos_x][emptyCell.pos_y]
+		selectedCell.isRendered = true
+		selectedCell.val = 2
+	}
 
-	cell = &g.board.cells[0][1]
-	cell.isRendered = true
-	cell.val = 2
-
-	cell = &g.board.cells[0][2]
-	cell.isRendered = true
-	cell.val = 4
-
-	cell = &g.board.cells[0][3]
-	cell.isRendered = true
-	cell.val = 8
-
-	cell = &g.board.cells[1][1]
-	cell.isRendered = true
-	cell.val = 8
-
-	cell = &g.board.cells[2][2]
-	cell.isRendered = true
-	cell.val = 16
-
-	cell = &g.board.cells[3][3]
-	cell.isRendered = true
-	cell.val = 32
-
-	cell = &g.board.cells[3][2]
-	cell.isRendered = true
-	cell.val = 64
-
-	cell = &g.board.cells[3][3]
-	cell.isRendered = true
-	cell.val = 128
+	// cell := &g.board.cells[0][0]
+	// cell.isRendered = true
+	// cell.val = 2
+	//
+	// cell = &g.board.cells[1][0]
+	// cell.isRendered = true
+	// cell.val = 2
+	//
+	// cell = &g.board.cells[0][1]
+	// cell.isRendered = true
+	// cell.val = 2
+	//
+	// cell = &g.board.cells[0][2]
+	// cell.isRendered = true
+	// cell.val = 4
+	//
+	// cell = &g.board.cells[0][3]
+	// cell.isRendered = true
+	// cell.val = 8
+	//
+	// cell = &g.board.cells[1][1]
+	// cell.isRendered = true
+	// cell.val = 8
+	//
+	// cell = &g.board.cells[2][2]
+	// cell.isRendered = true
+	// cell.val = 16
+	//
+	// cell = &g.board.cells[3][3]
+	// cell.isRendered = true
+	// cell.val = 32
+	//
+	// cell = &g.board.cells[3][2]
+	// cell.isRendered = true
+	// cell.val = 64
+	//
+	// cell = &g.board.cells[3][3]
+	// cell.isRendered = true
+	// cell.val = 128
 
 	fontData, err := os.ReadFile("Roboto-Thin.ttf")
 	if err != nil {
