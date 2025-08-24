@@ -93,12 +93,16 @@ func drawBoard(g *Game, screen *ebiten.Image) {
 
 	for _, row := range g.board.cells {
 		for _, cell := range row {
+			colour := GetColor(cell.val)
 			op := &ebiten.DrawImageOptions{}
+			op.ColorScale.ScaleWithColor(colour)
 			txtOp := &text.DrawOptions{}
 			op.GeoM.Translate(float64(cell.x), float64(cell.y))
+
 			screen.DrawImage(cellImg, op)
 
 			if cell.isRendered {
+
 				txtOp.ColorScale.ScaleWithColor(color.Black)
 				DrawCenteredText(screen, g.fontFace, strconv.Itoa(cell.val), cell.x+CELL_SIZE/2, cell.y+CELL_SIZE/2)
 			}
@@ -131,31 +135,47 @@ func initGame() *Game {
 	b := Board{bg: background, cells: cells}
 	g := Game{board: b}
 
-	cell := &g.board.cells[0][1]
+	cell := &g.board.cells[0][0]
+	cell.isRendered = true
+	cell.val = 2
+
+	cell = &g.board.cells[1][0]
 	cell.isRendered = true
 	cell.val = 2
 
 	cell = &g.board.cells[0][1]
 	cell.isRendered = true
-	cell.val = 5
+	cell.val = 2
+
+	cell = &g.board.cells[0][2]
+	cell.isRendered = true
+	cell.val = 4
+
+	cell = &g.board.cells[0][3]
+	cell.isRendered = true
+	cell.val = 8
 
 	cell = &g.board.cells[1][1]
 	cell.isRendered = true
-	cell.val = 2
+	cell.val = 8
 
 	cell = &g.board.cells[2][2]
 	cell.isRendered = true
-	cell.val = 2
+	cell.val = 16
 
 	cell = &g.board.cells[3][3]
 	cell.isRendered = true
-	cell.val = 2
+	cell.val = 32
 
 	cell = &g.board.cells[3][2]
 	cell.isRendered = true
-	cell.val = 2
+	cell.val = 64
 
-	fontData, err := os.ReadFile("FUTRFW.TTF")
+	cell = &g.board.cells[3][3]
+	cell.isRendered = true
+	cell.val = 128
+
+	fontData, err := os.ReadFile("Roboto-Thin.ttf")
 	if err != nil {
 		panic("font read fail")
 	}

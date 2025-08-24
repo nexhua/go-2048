@@ -10,6 +10,46 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
+var (
+	BEIGE       = color.NRGBA{0xfa, 0xf8, 0xef, 0xff}
+	LIGHT_BROWN = color.NRGBA{0xcd, 0xc1, 0xb4, 0xff}
+
+	// Tile colors
+	LIGHT_TAN    = color.NRGBA{0xee, 0xe4, 0xda, 0xff} // 2
+	TAN          = color.NRGBA{0xed, 0xe0, 0xc8, 0xff} // 4
+	ORANGE_LIGHT = color.NRGBA{0xf2, 0xb1, 0x79, 0xff} // 8
+	ORANGE       = color.NRGBA{0xf5, 0x95, 0x63, 0xff} // 16
+	RED_ORANGE   = color.NRGBA{0xf6, 0x7c, 0x5f, 0xff} // 32
+	RED          = color.NRGBA{0xf6, 0x5e, 0x3b, 0xff} // 64
+	YELLOW_LIGHT = color.NRGBA{0xed, 0xcf, 0x72, 0xff} // 128
+	YELLOW       = color.NRGBA{0xed, 0xcc, 0x61, 0xff} // 256
+	GOLD_LIGHT   = color.NRGBA{0xed, 0xc8, 0x50, 0xff} // 512
+	GOLD         = color.NRGBA{0xed, 0xc5, 0x3f, 0xff} // 1024
+	GOLD_DEEP    = color.NRGBA{0xed, 0xc2, 0x2e, 0xff} // 2048
+
+	// For larger values
+	DARK_GRAY = color.NRGBA{0x3c, 0x3a, 0x32, 0xff}
+
+	// Text colors
+	TEXT_DARK  = color.NRGBA{0x77, 0x6e, 0x65, 0xff} // for 2, 4
+	TEXT_LIGHT = color.NRGBA{0xf9, 0xf6, 0xf2, 0xff} // for others
+)
+
+// TileColors maps tile values to colors
+var TileColors = map[int]color.NRGBA{
+	2:    LIGHT_TAN,
+	4:    TAN,
+	8:    ORANGE_LIGHT,
+	16:   ORANGE,
+	32:   RED_ORANGE,
+	64:   RED,
+	128:  YELLOW_LIGHT,
+	256:  YELLOW,
+	512:  GOLD_LIGHT,
+	1024: GOLD,
+	2048: GOLD_DEEP,
+}
+
 func GetDirection() (Direction, error) {
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 		return UP, nil
@@ -35,10 +75,21 @@ func Move(g *Game, d Direction) {
 	case RIGHT:
 		for _, row := range g.board.cells {
 			ShiftRight(row)
+
+			mergeCount, err := MergeSlice(row, len(row)-1)
+
+			if err == nil && mergeCount > 0 {
+				ShiftRight(row)
+			}
 		}
 	case LEFT:
 		for _, row := range g.board.cells {
 			ShiftLeft(row)
+			mergeCount, err := MergeSlice(row, 0)
+
+			if err == nil && mergeCount > 0 {
+				ShiftLeft(row)
+			}
 		}
 	case UP:
 		row_s := len(g.board.cells)
@@ -53,6 +104,11 @@ func Move(g *Game, d Direction) {
 
 			if err == nil {
 				ShiftUp(v_slice)
+				mergeCount, err := MergeSliceRef(v_slice, 0)
+
+				if err == nil && mergeCount > 0 {
+					ShiftUp(v_slice)
+				}
 			}
 		}
 	case DOWN:
@@ -68,10 +124,111 @@ func Move(g *Game, d Direction) {
 
 			if err == nil {
 				ShiftDown(v_slice)
+				mergeCount, err := MergeSliceRef(v_slice, len(v_slice)-1)
+
+				if err == nil && mergeCount > 0 {
+					ShiftDown(v_slice)
+				}
 			}
 		}
 	}
 
+}
+
+func CastCellRef(cells []*Cell) []Cell {
+	casted := make([]Cell, len(cells))
+
+	for i, cell := range cells {
+		casted[i] = *cell
+	}
+
+	return casted
+}
+
+// Merge a horizontal slice
+// Merge direction is 0 or SIZE-1, any other value will be rejected
+func MergeSlice(slice []Cell, to int) (int, error) {
+	mergeCount := 0
+
+	if !(to == 0 || to == CELL_COUNT-1) {
+		return 0, errors.New("invalid to argument")
+	}
+
+	if len(slice) < 2 {
+		return 0, errors.New("slice is too small to merge")
+	}
+
+	// merge to start of slice
+	if to == 0 {
+		for i := 0; i < len(slice)-1; i++ {
+			lc, rc := &slice[i], &slice[i+1]
+
+			if (lc.isRendered && rc.isRendered) && (lc.val == rc.val) {
+				fmt.Printf("%s MERGE %s\n", FormatCell(*lc), FormatCell(*rc))
+				fmt.Printf("%p - %p\n", lc, rc)
+				lc.val += rc.val
+				rc.isRendered = false
+				rc.val = 0
+				mergeCount++
+			}
+		}
+	} else {
+		for i := len(slice) - 1; i > 0; i-- {
+			lc, rc := &slice[i-1], &slice[i]
+
+			if (lc.isRendered && rc.isRendered) && (lc.val == rc.val) {
+				rc.val += lc.val
+				lc.isRendered = false
+				lc.val = 0
+				mergeCount++
+			}
+		}
+	}
+
+	return mergeCount, nil
+}
+
+// Merge a vertical (accepts a ref slice)
+// Merge direction is 0 or SIZE-1, any other value will be rejected
+func MergeSliceRef(slice []*Cell, to int) (int, error) {
+	mergeCount := 0
+
+	if !(to == 0 || to == CELL_COUNT-1) {
+		fmt.Println("invalid to argument")
+		return 0, errors.New("invalid to argument")
+	}
+
+	if len(slice) < 2 {
+		fmt.Println("slice is too small to merge")
+		return 0, errors.New("slice is too small to merge")
+	}
+
+	// merge to start of slice
+	if to == 0 {
+		for i := 0; i < len(slice)-1; i++ {
+			lc, rc := slice[i], slice[i+1]
+
+			if (lc.isRendered && rc.isRendered) && (lc.val == rc.val) {
+				lc.val += rc.val
+				rc.isRendered = false
+				rc.val = 0
+				mergeCount++
+			}
+		}
+	} else {
+		for i := len(slice) - 1; i > 0; i-- {
+			lc, rc := slice[i-1], slice[i]
+
+			if (lc.isRendered && rc.isRendered) && (lc.val == rc.val) {
+				rc.val += lc.val
+				lc.isRendered = false
+				lc.val = 0
+				mergeCount++
+			}
+		}
+	}
+
+	return mergeCount, nil
 }
 
 // From a boolean array find first empty from given index(START/END)
@@ -112,7 +269,6 @@ func ShiftRight(row []Cell) {
 			right_empty, err := FirstEmptyFrom(empties, size-1)
 			if err == nil && right_empty > i {
 				cell_to := &row[right_empty]
-				// MoveCellValues(cells, cell.pos_x, cell.pos_y, cell_to.pos_x, cell_to.pos_y)
 				ChangeCellState(cell, cell_to)
 				empties[right_empty] = false
 				empties[i] = true
@@ -182,6 +338,8 @@ func ShiftDown(col []*Cell) {
 	}
 }
 
+// Returns a 1D Cell array from 2D grid
+// Returned array starts from 0 (meaning UP)
 func TakeVerticalSlice(cells [][]Cell, col int) ([]*Cell, error) {
 	col_size := len(cells[0])
 
@@ -224,11 +382,6 @@ func ChangeCellState(src *Cell, dst *Cell) {
 }
 
 func DrawCenteredText(screen *ebiten.Image, fontFace *text.GoTextFace, s string, cx int, cy int) {
-
-	// bounds, _ := font.BoundString(fontFace, s)
-	// dx := (bounds.Max.X - bounds.Min.X).Round()
-	// dy := (bounds.Max.Y - bounds.Min.Y).Round()
-	// x, y := cx-bounds.Min.X.Round()-dx/2, cy-bounds.Min.Y.Round()-dy/2
 	tx, ty := text.Measure(s, fontFace, 0)
 	txtOp := &text.DrawOptions{}
 	txtOp.GeoM.Translate(float64(cx)-tx/2, float64(cy)-ty/2)
@@ -244,4 +397,12 @@ func CalculateActualCellPosition(start_x int, start_y int, pos_x int, pos_y int,
 
 func FormatCell(cell Cell) string {
 	return fmt.Sprintf("Cell{pos_x:%d, pos_y:%d, x:%d, y:%d, val:%d, isRendered:%t}", cell.pos_x, cell.pos_y, cell.x, cell.y, cell.val, cell.isRendered)
+}
+
+func GetColor(val int) color.NRGBA {
+	if col, ok := TileColors[val]; ok {
+		return col
+	}
+
+	return DARK_GRAY
 }
