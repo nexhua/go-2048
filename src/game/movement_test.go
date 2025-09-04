@@ -9,6 +9,8 @@ type TestCellCmp struct {
 	expectedNumOfMovements int
 	expectedCells          []Cell
 	actualCells            []Cell
+	expectedCellsRef       []*Cell
+	actualCellsRef         []*Cell
 }
 
 func TestShiftRight(t *testing.T) {
@@ -20,7 +22,7 @@ func TestShiftRight(t *testing.T) {
 			actualCells:            []Cell{Cell{}, Cell{}, Cell{}, Cell{val: 2, isRendered: true}},
 		},
 		{
-			name:                   "shift cell to right",
+			name:                   "shift cell right",
 			expectedNumOfMovements: 1,
 			expectedCells:          []Cell{Cell{}, Cell{}, Cell{val: 2, isRendered: true}, Cell{val: 2, isRendered: true}},
 			actualCells:            []Cell{Cell{val: 2, isRendered: true}, Cell{}, Cell{}, Cell{val: 2, isRendered: true}},
@@ -62,7 +64,7 @@ func TestShiftLeft(t *testing.T) {
 			actualCells:            []Cell{Cell{val: 2, isRendered: true}, Cell{}, Cell{}, Cell{}},
 		},
 		{
-			name:                   "shift cell to left",
+			name:                   "shift cell left",
 			expectedNumOfMovements: 1,
 			expectedCells:          []Cell{Cell{val: 2, isRendered: true}, Cell{val: 2, isRendered: true}, Cell{}, Cell{}},
 			actualCells:            []Cell{Cell{val: 2, isRendered: true}, Cell{}, Cell{}, Cell{val: 2, isRendered: true}},
@@ -90,6 +92,90 @@ func TestShiftLeft(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			actualNumOfMovements := ShiftLeft(tc.actualCells)
+			compareCells(t, tc, actualNumOfMovements)
+		})
+	}
+}
+
+func TestShiftUp(t *testing.T) {
+	testCases := []TestCellCmp{
+		{
+			name:                   "shift single cell at top position up",
+			expectedNumOfMovements: 0,
+			expectedCellsRef:       []*Cell{&Cell{val: 2, isRendered: true}, &Cell{}, &Cell{}, &Cell{}},
+			actualCellsRef:         []*Cell{&Cell{val: 2, isRendered: true}, &Cell{}, &Cell{}, &Cell{}},
+		},
+		{
+			name:                   "shift cell up",
+			expectedNumOfMovements: 1,
+			expectedCellsRef:       []*Cell{&Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}, &Cell{}, &Cell{}},
+			actualCellsRef:         []*Cell{&Cell{val: 2, isRendered: true}, &Cell{}, &Cell{}, &Cell{val: 2, isRendered: true}},
+		},
+		{
+			name:                   "shift multiple in tandem cells up",
+			expectedNumOfMovements: 2,
+			expectedCellsRef:       []*Cell{&Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}, &Cell{}, &Cell{}},
+			actualCellsRef:         []*Cell{&Cell{}, &Cell{}, &Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}},
+		},
+		{
+			name:                   "shift multiple cells up",
+			expectedNumOfMovements: 2,
+			expectedCellsRef:       []*Cell{&Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}, &Cell{}, &Cell{}},
+			actualCellsRef:         []*Cell{&Cell{}, &Cell{val: 2, isRendered: true}, &Cell{}, &Cell{val: 2, isRendered: true}},
+		},
+		{
+			name:                   "shift when all cells exists up",
+			expectedNumOfMovements: 0,
+			expectedCellsRef:       []*Cell{&Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}},
+			actualCellsRef:         []*Cell{&Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actualNumOfMovements := ShiftUp(tc.actualCellsRef)
+			compareCells(t, tc, actualNumOfMovements)
+		})
+	}
+}
+
+func TestShiftDown(t *testing.T) {
+	testCases := []TestCellCmp{
+		{
+			name:                   "shift single cell at bottom position down",
+			expectedNumOfMovements: 0,
+			expectedCellsRef:       []*Cell{&Cell{}, &Cell{}, &Cell{}, &Cell{val: 2, isRendered: true}},
+			actualCellsRef:         []*Cell{&Cell{}, &Cell{}, &Cell{}, &Cell{val: 2, isRendered: true}},
+		},
+		{
+			name:                   "shift cell down",
+			expectedNumOfMovements: 1,
+			expectedCellsRef:       []*Cell{&Cell{}, &Cell{}, &Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}},
+			actualCellsRef:         []*Cell{&Cell{val: 2, isRendered: true}, &Cell{}, &Cell{}, &Cell{val: 2, isRendered: true}},
+		},
+		{
+			name:                   "shift multiple in tandem cells down",
+			expectedNumOfMovements: 2,
+			expectedCellsRef:       []*Cell{&Cell{}, &Cell{}, &Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}},
+			actualCellsRef:         []*Cell{&Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}, &Cell{}, &Cell{}},
+		},
+		{
+			name:                   "shift multiple cells down",
+			expectedNumOfMovements: 2,
+			expectedCellsRef:       []*Cell{&Cell{}, &Cell{}, &Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}},
+			actualCellsRef:         []*Cell{&Cell{val: 2, isRendered: true}, &Cell{}, &Cell{val: 2, isRendered: true}, &Cell{}},
+		},
+		{
+			name:                   "shift when all cells exists down",
+			expectedNumOfMovements: 0,
+			expectedCellsRef:       []*Cell{&Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}},
+			actualCellsRef:         []*Cell{&Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}, &Cell{val: 2, isRendered: true}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actualNumOfMovements := ShiftDown(tc.actualCellsRef)
 			compareCells(t, tc, actualNumOfMovements)
 		})
 	}

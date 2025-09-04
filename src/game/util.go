@@ -61,7 +61,7 @@ func FirstEmptyFrom(empties []bool, from int) (int, error) {
 func TakeVerticalSlice(cells [][]Cell, col int) ([]*Cell, error) {
 	col_size := len(cells[0])
 
-	if col >= col_size {
+	if col >= col_size || col < 0 {
 		return nil, errors.New("invalid column index")
 	}
 
@@ -72,20 +72,6 @@ func TakeVerticalSlice(cells [][]Cell, col int) ([]*Cell, error) {
 	}
 
 	return v_slice, nil
-}
-
-func MoveCellValues(cells [][]Cell, src_x int, src_y int, dst_x int, dst_y int) {
-	from := &cells[src_x][src_y]
-	to := &cells[dst_x][dst_y]
-
-	tmpIsRendered := to.isRendered
-	tmpVal := to.val
-
-	to.isRendered = from.isRendered
-	to.val = from.val
-
-	from.isRendered = tmpIsRendered
-	from.val = tmpVal
 }
 
 func ChangeCellState(src *Cell, dst *Cell) {

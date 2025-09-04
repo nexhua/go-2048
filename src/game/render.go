@@ -31,6 +31,9 @@ func (g *Game) Update() error {
 	}
 
 	// TODO Detect if user can do any movements, if not game over
+	// TODO Add gameover if reached to 2048
+	// TODO Add score
+	// TODO Add ctrl z to go back
 
 	return nil
 }

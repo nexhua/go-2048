@@ -45,6 +45,7 @@ func FormatCell(cell Cell) string {
 	return fmt.Sprintf("Cell{pos_x:%d, pos_y:%d, x:%d, y:%d, val:%d, isRendered:%t}", cell.pos_x, cell.pos_y, cell.x, cell.y, cell.val, cell.isRendered)
 }
 
+// TODO add tests for merges
 // Merge a horizontal slice
 // Merge direction is 0 or SIZE-1, any other value will be rejected
 func MergeSlice(slice []Cell, to int) (int, error) {
@@ -175,7 +176,7 @@ func InitGame() *Game {
 
 	g.fontFace = &text.GoTextFace{
 		Source: g.fontSource,
-		Size:   float64(CELL_SIZE) / 2,
+		Size:   float64(CELL_SIZE) / 4 * ebiten.Monitor().DeviceScaleFactor(),
 	}
 
 	return &g
