@@ -37,6 +37,7 @@ type Board struct {
 
 type Game struct {
 	board      Board
+	score      int
 	fontSource *text.GoTextFaceSource
 	fontFace   *text.GoTextFace
 }
@@ -49,7 +50,7 @@ func FormatCell(cell Cell) string {
 // Merge a horizontal slice
 // Merge direction is 0 or SIZE-1, any other value will be rejected
 func MergeSlice(slice []Cell, to int) (int, error) {
-	mergeCount := 0
+	mergeScore := 0
 
 	if !(to == 0 || to == CELL_COUNT-1) {
 		return 0, errors.New("invalid to argument")
@@ -65,10 +66,10 @@ func MergeSlice(slice []Cell, to int) (int, error) {
 			lc, rc := &slice[i], &slice[i+1]
 
 			if (lc.isRendered && rc.isRendered) && (lc.val == rc.val) {
+				mergeScore += lc.val * 2
 				lc.val += rc.val
 				rc.isRendered = false
 				rc.val = 0
-				mergeCount++
 			}
 		}
 	} else {
@@ -76,21 +77,21 @@ func MergeSlice(slice []Cell, to int) (int, error) {
 			lc, rc := &slice[i-1], &slice[i]
 
 			if (lc.isRendered && rc.isRendered) && (lc.val == rc.val) {
+				mergeScore += lc.val * 2
 				rc.val += lc.val
 				lc.isRendered = false
 				lc.val = 0
-				mergeCount++
 			}
 		}
 	}
 
-	return mergeCount, nil
+	return mergeScore, nil
 }
 
 // Merge a vertical (accepts a ref slice)
 // Merge direction is 0 or SIZE-1, any other value will be rejected
 func MergeSliceRef(slice []*Cell, to int) (int, error) {
-	mergeCount := 0
+	mergeScore := 0
 
 	if !(to == 0 || to == CELL_COUNT-1) {
 		fmt.Println("invalid to argument")
@@ -108,10 +109,10 @@ func MergeSliceRef(slice []*Cell, to int) (int, error) {
 			lc, rc := slice[i], slice[i+1]
 
 			if (lc.isRendered && rc.isRendered) && (lc.val == rc.val) {
+				mergeScore += lc.val * 2
 				lc.val += rc.val
 				rc.isRendered = false
 				rc.val = 0
-				mergeCount++
 			}
 		}
 	} else {
@@ -119,15 +120,15 @@ func MergeSliceRef(slice []*Cell, to int) (int, error) {
 			lc, rc := slice[i-1], slice[i]
 
 			if (lc.isRendered && rc.isRendered) && (lc.val == rc.val) {
+				mergeScore += lc.val * 2
 				rc.val += lc.val
 				lc.isRendered = false
 				lc.val = 0
-				mergeCount++
 			}
 		}
 	}
 
-	return mergeCount, nil
+	return mergeScore, nil
 }
 
 func InitGame() *Game {

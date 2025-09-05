@@ -16,7 +16,7 @@ func (g *Game) Update() error {
 
 	dir, err := GetDirection()
 	if err == nil {
-		totalNumOfMovements := Move(g, dir)
+		totalNumOfMovements, totalMergeScore := Move(g, dir)
 
 		if totalNumOfMovements > 0 {
 			emptyCell, err := GetRandomCell(g.board.cells)
@@ -26,6 +26,8 @@ func (g *Game) Update() error {
 				selectedCell.isRendered = true
 				selectedCell.val = 2
 			}
+
+			g.score += totalMergeScore
 		}
 
 	}
@@ -41,6 +43,7 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	drawBackground(g, screen)
 	drawBoard(g, screen)
+	drawScoreboard(g, screen, g.board.bg.x+g.board.bg.dx, g.board.bg.y)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -77,17 +80,34 @@ func drawBoard(g *Game, screen *ebiten.Image) {
 			if cell.isRendered {
 
 				txtOp.ColorScale.ScaleWithColor(color.Black)
-				DrawCenteredText(screen, g.fontFace, strconv.Itoa(cell.val), cell.x+CELL_SIZE/2, cell.y+CELL_SIZE/2)
+				DrawCenteredText(screen, g.fontFace, strconv.Itoa(cell.val), cell.x+CELL_SIZE/2, cell.y+CELL_SIZE/2, txtOp)
 			}
 		}
 	}
 }
 
-func DrawCenteredText(screen *ebiten.Image, fontFace *text.GoTextFace, s string, cx int, cy int) {
-	tx, ty := text.Measure(s, fontFace, 0)
+func drawScoreboard(g *Game, screen *ebiten.Image, x int, y int) {
+	x_offset := float64(x) + float64(CELL_SIZE)/2
+	y_offset := float64(y) + float64(GAP)
+	w := CELL_SIZE * 2
+	h := CELL_SIZE
+	scoreImg := ebiten.NewImage(w, h)
+	scoreImg.Fill(DARK_GRAY)
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(x_offset, y_offset)
+
+	screen.DrawImage(scoreImg, op)
+
 	txtOp := &text.DrawOptions{}
+	txtOp.ColorScale.ScaleWithColor(TEXT_DARK)
+	DrawCenteredText(screen, g.fontFace, "SCORE", int(x_offset)+w/2, int(y_offset)+h/4, txtOp)
+	txtOp = &text.DrawOptions{}
+	DrawCenteredText(screen, g.fontFace, strconv.Itoa(g.score), int(x_offset)+w/2, int(y_offset)+3*h/4, txtOp)
+}
+
+func DrawCenteredText(screen *ebiten.Image, fontFace *text.GoTextFace, s string, cx int, cy int, txtOp *text.DrawOptions) {
+	tx, ty := text.Measure(s, fontFace, 0)
 	txtOp.GeoM.Translate(float64(cx)-tx/2, float64(cy)-ty/2)
-	txtOp.ColorScale.ScaleWithColor(color.Black)
 	text.Draw(screen, s, fontFace, txtOp)
 }
 

@@ -38,25 +38,28 @@ func GetDirection() (Direction, error) {
 
 // Moves cells for a given direction
 // Returns the number of movements
-func Move(g *Game, d Direction) int {
+func Move(g *Game, d Direction) (int, int) {
 	totalNumOfMovements := 0
+	totalMergeScore := 0
 	switch d {
 	case RIGHT:
 		for _, row := range g.board.cells {
 			totalNumOfMovements += ShiftRight(row)
 
-			mergeCount, err := MergeSlice(row, len(row)-1)
+			mergeScore, err := MergeSlice(row, len(row)-1)
 
-			if err == nil && mergeCount > 0 {
+			if err == nil && mergeScore > 0 {
+				totalMergeScore += mergeScore
 				ShiftRight(row)
 			}
 		}
 	case LEFT:
 		for _, row := range g.board.cells {
 			totalNumOfMovements += ShiftLeft(row)
-			mergeCount, err := MergeSlice(row, 0)
+			mergeScore, err := MergeSlice(row, 0)
 
-			if err == nil && mergeCount > 0 {
+			if err == nil && mergeScore > 0 {
+				totalMergeScore += mergeScore
 				ShiftLeft(row)
 			}
 		}
@@ -73,9 +76,10 @@ func Move(g *Game, d Direction) int {
 
 			if err == nil {
 				totalNumOfMovements += ShiftUp(v_slice)
-				mergeCount, err := MergeSliceRef(v_slice, 0)
+				mergeScore, err := MergeSliceRef(v_slice, 0)
 
-				if err == nil && mergeCount > 0 {
+				if err == nil && mergeScore > 0 {
+					totalMergeScore += mergeScore
 					ShiftUp(v_slice)
 				}
 			}
@@ -93,16 +97,17 @@ func Move(g *Game, d Direction) int {
 
 			if err == nil {
 				totalNumOfMovements += ShiftDown(v_slice)
-				mergeCount, err := MergeSliceRef(v_slice, len(v_slice)-1)
+				mergeScore, err := MergeSliceRef(v_slice, len(v_slice)-1)
 
-				if err == nil && mergeCount > 0 {
+				if err == nil && mergeScore > 0 {
+					totalMergeScore += mergeScore
 					ShiftDown(v_slice)
 				}
 			}
 		}
 	}
 
-	return totalNumOfMovements
+	return totalNumOfMovements, totalMergeScore
 
 }
 
