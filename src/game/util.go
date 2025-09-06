@@ -84,3 +84,16 @@ func ChangeCellState(src *Cell, dst *Cell) {
 	src.val = tmpVal
 	src.isRendered = tmpRendered
 }
+
+func HasEmptyCell(cells [][]Cell) bool {
+	for i := 0; i < len(cells); i++ {
+		for j := 0; j < len(cells[i]); j++ {
+			c := cells[i][j]
+			if !c.isRendered {
+				return true
+			}
+		}
+	}
+
+	return false
+}

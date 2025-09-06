@@ -22,6 +22,11 @@ func (g *Game) Update() error {
 			break
 		}
 
+		if IsGameOver(g.board.cells) {
+			g.status = GAME_OVER
+			break
+		}
+
 		dir, err := GetDirection()
 		if err == nil {
 			totalNumOfMovements, totalMergeScore := Move(g, dir)
@@ -44,14 +49,15 @@ func (g *Game) Update() error {
 			ResetGame(g)
 		}
 	case GAME_OVER:
-		// do nothing
+		pressedKeys := inpututil.AppendJustPressedKeys(nil)
+		if len(pressedKeys) > 0 {
+			ResetGame(g)
+		}
 	default:
 		return errors.New("unhandled game status reached. exiting")
 	}
 
-	// TODO Detect if user can do any movements, if not game over
 	// TODO Add ctrl z to go back
-
 	return nil
 }
 
@@ -66,10 +72,16 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		drawBoard(g, screen)
 		drawScoreboard(g, screen, g.board.bg.x+g.board.bg.dx, g.board.bg.y)
 		drawOverlay(g, screen)
+		drawAfterGameText(g, screen, "Congratulations!")
+	case GAME_OVER:
+		drawBackground(g, screen)
+		drawBoard(g, screen)
+		drawScoreboard(g, screen, g.board.bg.x+g.board.bg.dx, g.board.bg.y)
+		drawOverlay(g, screen)
+		drawAfterGameText(g, screen, "Game Over!")
 	default:
 		panic("TODO")
 	}
-
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -138,19 +150,27 @@ func drawOverlay(g *Game, screen *ebiten.Image) {
 	overlayOpt := &ebiten.DrawImageOptions{}
 	overlayOpt.GeoM.Translate(float64(g.board.bg.x), float64(g.board.bg.y))
 
+	screen.DrawImage(overlayImage, overlayOpt)
+}
+
+func drawAfterGameText(g *Game, screen *ebiten.Image, message string) {
 	txtOp := &text.DrawOptions{}
 	txtOp.ColorScale.ScaleWithColor(color.Black)
-
 	cx := g.board.bg.x + g.board.bg.dx/2
 	cy := g.board.bg.y + g.board.bg.dy/2
 	lh := g.fontFace.Metrics().HAscent
-
-	screen.DrawImage(overlayImage, overlayOpt)
-	DrawCenteredText(screen, g.fontFace, "Congratulations!", cx, cy, txtOp)
+	DrawCenteredText(screen, g.fontFace, message, cx, cy, txtOp)
 
 	txtOp = &text.DrawOptions{}
 	txtOp.ColorScale.ScaleWithColor(DARK_GRAY)
+	// TODO
+	// Ugly way to print text at different sizes
+	// Refactor this and accept size as parameter for DrawCenteredText
+	// Calculate predefined font size based on screen (like big, small, medium etc..)
+	tmp := g.fontFace.Size
+	g.fontFace.Size = tmp - 20
 	DrawCenteredText(screen, g.fontFace, "Press any key to reset", cx, cy+int(lh), txtOp)
+	g.fontFace.Size = tmp
 }
 
 func DrawCenteredText(screen *ebiten.Image, fontFace *text.GoTextFace, s string, cx int, cy int, txtOp *text.DrawOptions) {
