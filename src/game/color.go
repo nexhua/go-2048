@@ -25,6 +25,8 @@ var (
 	// Text colors
 	TEXT_DARK  = color.NRGBA{0x77, 0x6e, 0x65, 0xff} // for 2, 4
 	TEXT_LIGHT = color.NRGBA{0xf9, 0xf6, 0xf2, 0xff} // for others
+
+	OVERLAY_BACKGROUND = color.NRGBA{0xc6, 0xd0, 0xcf, 0x64}
 )
 
 // TileColors maps tile values to colors

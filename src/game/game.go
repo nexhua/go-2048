@@ -14,6 +14,14 @@ var CELL_SIZE = 120
 var GAP = 10
 var CELL_COUNT = 4
 
+type GameStatus int32
+
+const (
+	RUNNING GameStatus = iota
+	FINISHED
+	GAME_OVER
+)
+
 type Cell struct {
 	x          int
 	y          int
@@ -40,6 +48,7 @@ type Game struct {
 	score      int
 	fontSource *text.GoTextFaceSource
 	fontFace   *text.GoTextFace
+	status     GameStatus
 }
 
 func FormatCell(cell Cell) string {
@@ -154,7 +163,7 @@ func InitGame() *Game {
 	}
 
 	b := Board{bg: background, cells: cells}
-	g := Game{board: b}
+	g := Game{board: b, status: RUNNING}
 
 	emptyCell, err := GetRandomCell(g.board.cells)
 
@@ -181,4 +190,41 @@ func InitGame() *Game {
 	}
 
 	return &g
+}
+
+func IsGameFinished(cells [][]Cell) bool {
+	for i := 0; i < len(cells); i++ {
+		for j := 0; j < len(cells[i]); j++ {
+			c := cells[i][j]
+			if c.isRendered && c.val == 2048 {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func ResetGame(g *Game) {
+	ResetBoard(&g.board)
+	g.score = 0
+	g.status = RUNNING
+
+	emptyCell, err := GetRandomCell(g.board.cells)
+
+	if err == nil {
+		selectedCell := &g.board.cells[emptyCell.pos_x][emptyCell.pos_y]
+		selectedCell.isRendered = true
+		selectedCell.val = 2
+	}
+}
+
+func ResetBoard(b *Board) {
+	for i, row := range b.cells {
+		for j := range row {
+			c := &b.cells[i][j]
+			c.isRendered = false
+			c.val = 0
+		}
+	}
 }

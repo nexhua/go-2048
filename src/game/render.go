@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
@@ -14,36 +15,61 @@ func (g *Game) Update() error {
 		return errors.New("SIGKILL")
 	}
 
-	dir, err := GetDirection()
-	if err == nil {
-		totalNumOfMovements, totalMergeScore := Move(g, dir)
-
-		if totalNumOfMovements > 0 {
-			emptyCell, err := GetRandomCell(g.board.cells)
-
-			if err == nil {
-				selectedCell := &g.board.cells[emptyCell.pos_x][emptyCell.pos_y]
-				selectedCell.isRendered = true
-				selectedCell.val = 2
-			}
-
-			g.score += totalMergeScore
+	switch g.status {
+	case RUNNING:
+		if IsGameFinished(g.board.cells) {
+			g.status = FINISHED
+			break
 		}
 
+		dir, err := GetDirection()
+		if err == nil {
+			totalNumOfMovements, totalMergeScore := Move(g, dir)
+
+			if totalNumOfMovements > 0 {
+				emptyCell, err := GetRandomCell(g.board.cells)
+
+				if err == nil {
+					selectedCell := &g.board.cells[emptyCell.pos_x][emptyCell.pos_y]
+					selectedCell.isRendered = true
+					selectedCell.val = 2
+				}
+
+				g.score += totalMergeScore
+			}
+		}
+	case FINISHED:
+		pressedKeys := inpututil.AppendJustPressedKeys(nil)
+		if len(pressedKeys) > 0 {
+			ResetGame(g)
+		}
+	case GAME_OVER:
+		// do nothing
+	default:
+		return errors.New("unhandled game status reached. exiting")
 	}
 
 	// TODO Detect if user can do any movements, if not game over
-	// TODO Add gameover if reached to 2048
-	// TODO Add score
 	// TODO Add ctrl z to go back
 
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	drawBackground(g, screen)
-	drawBoard(g, screen)
-	drawScoreboard(g, screen, g.board.bg.x+g.board.bg.dx, g.board.bg.y)
+	switch g.status {
+	case RUNNING:
+		drawBackground(g, screen)
+		drawBoard(g, screen)
+		drawScoreboard(g, screen, g.board.bg.x+g.board.bg.dx, g.board.bg.y)
+	case FINISHED:
+		drawBackground(g, screen)
+		drawBoard(g, screen)
+		drawScoreboard(g, screen, g.board.bg.x+g.board.bg.dx, g.board.bg.y)
+		drawOverlay(g, screen)
+	default:
+		panic("TODO")
+	}
+
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -103,6 +129,28 @@ func drawScoreboard(g *Game, screen *ebiten.Image, x int, y int) {
 	DrawCenteredText(screen, g.fontFace, "SCORE", int(x_offset)+w/2, int(y_offset)+h/4, txtOp)
 	txtOp = &text.DrawOptions{}
 	DrawCenteredText(screen, g.fontFace, strconv.Itoa(g.score), int(x_offset)+w/2, int(y_offset)+3*h/4, txtOp)
+}
+
+func drawOverlay(g *Game, screen *ebiten.Image) {
+	overlayImage := ebiten.NewImage(g.board.bg.dx, g.board.bg.dy)
+	overlayImage.Fill(OVERLAY_BACKGROUND)
+
+	overlayOpt := &ebiten.DrawImageOptions{}
+	overlayOpt.GeoM.Translate(float64(g.board.bg.x), float64(g.board.bg.y))
+
+	txtOp := &text.DrawOptions{}
+	txtOp.ColorScale.ScaleWithColor(color.Black)
+
+	cx := g.board.bg.x + g.board.bg.dx/2
+	cy := g.board.bg.y + g.board.bg.dy/2
+	lh := g.fontFace.Metrics().HAscent
+
+	screen.DrawImage(overlayImage, overlayOpt)
+	DrawCenteredText(screen, g.fontFace, "Congratulations!", cx, cy, txtOp)
+
+	txtOp = &text.DrawOptions{}
+	txtOp.ColorScale.ScaleWithColor(DARK_GRAY)
+	DrawCenteredText(screen, g.fontFace, "Press any key to reset", cx, cy+int(lh), txtOp)
 }
 
 func DrawCenteredText(screen *ebiten.Image, fontFace *text.GoTextFace, s string, cx int, cy int, txtOp *text.DrawOptions) {
