@@ -36,8 +36,12 @@ func (g *Game) Update() error {
 
 				if err == nil {
 					selectedCell := &g.board.cells[emptyCell.pos_x][emptyCell.pos_y]
-					selectedCell.isRendered = true
-					selectedCell.val = 2
+					selectedCell.isRendered = false
+					selectedCell.val = 0
+
+					g.status = ANIMATING
+					cellCopy := *selectedCell
+					g.animations = append(g.animations, CreateCellAnimation(cellCopy, CREATE_CELL_ANIMATION_DURATION))
 				}
 
 				g.score += totalMergeScore
@@ -53,6 +57,30 @@ func (g *Game) Update() error {
 		if len(pressedKeys) > 0 {
 			ResetGame(g)
 		}
+	case ANIMATING:
+		for _, animation := range g.animations {
+
+			err := animation.Step()
+			if err != nil {
+				OnAnimationFinished(animation, g)
+			}
+
+			allAnimationsAreDone := true
+			for _, animation := range g.animations {
+				if animation.GetStatus() != ANIM_FINISHED {
+					allAnimationsAreDone = false
+					break
+				} else {
+					OnAnimationFinished(animation, g)
+				}
+			}
+
+			if allAnimationsAreDone {
+				g.animations = make([]Animation, 0)
+				g.status = RUNNING
+			}
+		}
+
 	default:
 		return errors.New("unhandled game status reached. exiting")
 	}
@@ -63,6 +91,11 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	switch g.status {
+	case ANIMATING:
+		drawBackground(g, screen)
+		drawBoard(g, screen)
+		drawScoreboard(g, screen, g.board.bg.x+g.board.bg.dx, g.board.bg.y)
+		drawAnimations(g, screen)
 	case RUNNING:
 		drawBackground(g, screen)
 		drawBoard(g, screen)
@@ -151,6 +184,33 @@ func drawOverlay(g *Game, screen *ebiten.Image) {
 	overlayOpt.GeoM.Translate(float64(g.board.bg.x), float64(g.board.bg.y))
 
 	screen.DrawImage(overlayImage, overlayOpt)
+}
+
+func drawAnimations(g *Game, screen *ebiten.Image) {
+
+	for _, animation := range g.animations {
+
+		switch animation.GetType() {
+		case ANIM_CREATE_CELL:
+			ca := animation.(*CreateAnimation)
+			c := ca.position
+
+			cellImg := ebiten.NewImage(ca.currentSize, ca.currentSize)
+			cellImg.Fill(GetColor(2))
+
+			cx := c.x + CELL_SIZE/2 // center x
+			cy := c.y + CELL_SIZE/2 // center y
+
+			cx = cx - ca.currentSize/2 // center x offsetted by current size
+			cy = cy - ca.currentSize/2 // center y offsetted by current size
+
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Translate(float64(cx), float64(cy))
+			screen.DrawImage(cellImg, op)
+		default:
+			panic("unreachable")
+		}
+	}
 }
 
 func drawAfterGameText(g *Game, screen *ebiten.Image, message string) {

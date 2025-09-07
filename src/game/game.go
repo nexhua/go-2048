@@ -12,6 +12,8 @@ import (
 var CELL_SIZE = 120
 var GAP = 10
 var CELL_COUNT = 4
+var TARGET_TPS = 60
+var CREATE_CELL_ANIMATION_DURATION = TARGET_TPS / 8
 
 type GameStatus int32
 
@@ -19,6 +21,7 @@ const (
 	RUNNING GameStatus = iota
 	FINISHED
 	GAME_OVER
+	ANIMATING
 )
 
 type Cell struct {
@@ -48,6 +51,7 @@ type Game struct {
 	fontSource *text.GoTextFaceSource
 	fontFace   *text.GoTextFace
 	status     GameStatus
+	animations []Animation
 }
 
 func FormatCell(cell Cell) string {
@@ -76,8 +80,10 @@ func InitGame() *Game {
 		}
 	}
 
+	anims := make([]Animation, 0)
+
 	b := Board{bg: background, cells: cells}
-	g := Game{board: b, status: RUNNING}
+	g := Game{board: b, status: RUNNING, animations: anims}
 
 	emptyCell, err := GetRandomCell(g.board.cells)
 

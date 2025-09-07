@@ -12,6 +12,7 @@ func main() {
 	x, y := ebiten.Monitor().Size()
 	ebiten.SetWindowSize(x/2, y/2)
 	ebiten.SetWindowTitle("2048!")
+	ebiten.SetTPS(game.TARGET_TPS)
 	if err := ebiten.RunGame(game.InitGame()); err != nil {
 		if err.Error() == "SIGKILL" {
 			return
