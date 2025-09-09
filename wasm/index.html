@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<div id="iframe_container" tabindex="0">
+<iframe id="wasm_render_iframe" src="main.html" width="860" height="600" tabindex="0"></iframe></iframe>
+</div>
+
+
+
+<script>
+    const iframe = document.getElementById("iframe_container")
+    
+    if (iframe) {
+        iframe.focus()
+        iframe.click()
+    }
+    console.log(iframe)
+</script>

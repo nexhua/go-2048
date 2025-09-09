@@ -3,10 +3,13 @@ package game
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"golang.org/x/image/font/gofont/goregular"
 )
 
 var CELL_SIZE = 120
@@ -63,6 +66,14 @@ func InitGame() *Game {
 	grid_x, grid_y := CELL_COUNT*CELL_SIZE+(CELL_COUNT+1)*GAP, CELL_COUNT*CELL_SIZE+(CELL_COUNT+1)*GAP
 	bg_x_offset, bg_y_offset := (screen_x-grid_x)/2, (screen_y-grid_y)/2
 
+	// TODO
+	// This section could be better
+	// For now good enough for basic wasm support
+	if runtime.GOOS == "js" && runtime.GOARCH == "wasm" {
+		bg_x_offset = 0
+		bg_y_offset = 0
+	}
+
 	background := Background{
 		x:  bg_x_offset,
 		y:  bg_y_offset,
@@ -93,20 +104,37 @@ func InitGame() *Game {
 		selectedCell.val = 2
 	}
 
-	fontData, err := os.ReadFile("assets/Roboto-Thin.ttf")
-	if err != nil {
-		panic("font read fail")
-	}
+	// TODO
+	// Current font fetching is a bit of a mess
+	// We need different types of fonts for different purposes and also scale it properly based on screen size
+	// Also load a better font for WASM
+	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
+		fontData, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+		if err != nil {
+			log.Fatal("failed to load default WASM font:", err)
+		}
 
-	g.fontSource, err = text.NewGoTextFaceSource(bytes.NewReader(fontData))
+		g.fontSource = fontData
+		g.fontFace = &text.GoTextFace{
+			Source: g.fontSource,
+			Size:   float64(CELL_SIZE) / 4 * ebiten.Monitor().DeviceScaleFactor(),
+		}
+	} else {
+		fontData, err := os.ReadFile("assets/Roboto-Thin.ttf")
+		if err != nil {
+			panic("font read fail")
+		}
 
-	if err != nil {
-		panic("font fail")
-	}
+		g.fontSource, err = text.NewGoTextFaceSource(bytes.NewReader(fontData))
 
-	g.fontFace = &text.GoTextFace{
-		Source: g.fontSource,
-		Size:   float64(CELL_SIZE) / 4 * ebiten.Monitor().DeviceScaleFactor(),
+		if err != nil {
+			panic("font fail")
+		}
+
+		g.fontFace = &text.GoTextFace{
+			Source: g.fontSource,
+			Size:   float64(CELL_SIZE) / 4 * ebiten.Monitor().DeviceScaleFactor(),
+		}
 	}
 
 	return &g
