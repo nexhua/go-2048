@@ -9,6 +9,7 @@ type AnimationStatus int32
 
 const (
 	ANIM_CREATE_CELL AnimationType = iota
+	ANIM_MOVE_CELL
 )
 
 const (
@@ -22,6 +23,7 @@ type Animation interface {
 	GetStatus() AnimationStatus
 	GetLength() int
 	Step() error
+	OnFinish(Animation, *Game)
 }
 
 type CreateAnimation struct {
@@ -32,6 +34,15 @@ type CreateAnimation struct {
 	startingSize    int
 	targetSize      int
 	currentSize     int
+	step            int
+}
+
+type MoveAnimation struct {
+	animationType   AnimationType
+	animationStatus AnimationStatus
+	duration        int
+	start_pos       Vec2
+	end_pos         Vec2
 	step            int
 }
 
@@ -63,7 +74,41 @@ func (animation *CreateAnimation) Step() error {
 	return nil
 }
 
-// end impl CreateAnimation
+func (animation *CreateAnimation) OnFinish(anim Animation, g *Game) {
+	a := anim.(*CreateAnimation)
+
+	cellPos := a.position
+	c := &g.board.cells[cellPos.pos_x][cellPos.pos_y]
+	c.isRendered = true
+	c.val = 2
+}
+
+// end
+
+// impl MoveAnimation
+
+func (animation *MoveAnimation) GetType() AnimationType {
+	return ANIM_MOVE_CELL
+}
+
+func (animation *MoveAnimation) GetStatus() AnimationStatus {
+	return animation.animationStatus
+}
+
+func (animation *MoveAnimation) GetLength() int {
+	return animation.duration
+}
+
+func (animation *MoveAnimation) Step() error {
+	// TODO
+	return nil
+}
+
+func (animation *MoveAnimation) OnFinish() {
+
+}
+
+// end
 
 func CreateCellAnimation(cell Cell, durationInTicks int) *CreateAnimation {
 	animation := CreateAnimation{
@@ -78,16 +123,4 @@ func CreateCellAnimation(cell Cell, durationInTicks int) *CreateAnimation {
 	animation.currentSize = animation.startingSize
 	animation.step = max((animation.targetSize-animation.startingSize)/durationInTicks, 1)
 	return &animation
-}
-
-func OnAnimationFinished(animation Animation, g *Game) {
-	switch animation.GetType() {
-	case ANIM_CREATE_CELL:
-		a := animation.(*CreateAnimation)
-		cellPos := a.position
-
-		c := &g.board.cells[cellPos.pos_x][cellPos.pos_y]
-		c.isRendered = true
-		c.val = 2
-	}
 }

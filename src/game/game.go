@@ -24,8 +24,14 @@ const (
 	RUNNING GameStatus = iota
 	FINISHED
 	GAME_OVER
-	ANIMATING
 )
+
+// TODO
+// Move all x, y to Vec2 for better readability
+type Vec2 struct {
+	x int
+	y int
+}
 
 type Cell struct {
 	x          int
@@ -34,6 +40,7 @@ type Cell struct {
 	pos_y      int
 	val        int
 	isRendered bool
+	animation  Animation
 }
 
 type Background struct {
@@ -54,7 +61,6 @@ type Game struct {
 	fontSource *text.GoTextFaceSource
 	fontFace   *text.GoTextFace
 	status     GameStatus
-	animations []Animation
 }
 
 func FormatCell(cell Cell) string {
@@ -87,14 +93,12 @@ func InitGame() *Game {
 
 		for j := range cells[i] {
 			x, y := CalculateActualCellPosition(background.x, background.y, j, i, CELL_SIZE, GAP)
-			cells[i][j] = Cell{pos_x: i, pos_y: j, x: x, y: y, isRendered: false, val: 0}
+			cells[i][j] = Cell{pos_x: i, pos_y: j, x: x, y: y, isRendered: false, val: 0, animation: nil}
 		}
 	}
 
-	anims := make([]Animation, 0)
-
 	b := Board{bg: background, cells: cells}
-	g := Game{board: b, status: RUNNING, animations: anims}
+	g := Game{board: b, status: RUNNING}
 
 	emptyCell, err := GetRandomCell(g.board.cells)
 
@@ -185,4 +189,16 @@ func ResetBoard(b *Board) {
 			c.val = 0
 		}
 	}
+}
+
+func HasRunningAnimation(g *Game) bool {
+	for _, row := range g.board.cells {
+		for _, cell := range row {
+			if cell.animation != nil && cell.animation.GetStatus() != ANIM_FINISHED {
+				return true
+			}
+		}
+	}
+
+	return false
 }

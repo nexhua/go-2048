@@ -5,13 +5,12 @@ import (
 	"runtime"
 
 	"mkoca/2048/src/game"
-	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func main() {
 	x, y := ebiten.Monitor().Size()
-	fmt.Println(x, y)
 
 	// TODO
 	// WASM should also scale properly to users screen

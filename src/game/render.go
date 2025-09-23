@@ -27,26 +27,27 @@ func (g *Game) Update() error {
 			break
 		}
 
-		dir, err := GetDirection()
-		if err == nil {
-			totalNumOfMovements, totalMergeScore := Move(g, dir)
+		// Only accept input if there are no animations running
+		if !HasRunningAnimation(g) {
+			dir, err := GetDirection()
+			if err == nil {
+				totalNumOfMovements, totalMergeScore := Move(g, dir)
 
-			if totalNumOfMovements > 0 {
-				emptyCell, err := GetRandomCell(g.board.cells)
+				if totalNumOfMovements > 0 {
+					emptyCell, err := GetRandomCell(g.board.cells)
 
-				if err == nil {
-					selectedCell := &g.board.cells[emptyCell.pos_x][emptyCell.pos_y]
-					selectedCell.isRendered = false
-					selectedCell.val = 0
+					if err == nil {
+						selectedCell := &g.board.cells[emptyCell.pos_x][emptyCell.pos_y]
+						selectedCell.isRendered = false
+						selectedCell.val = 0
+						selectedCell.animation = CreateCellAnimation(*selectedCell, CREATE_CELL_ANIMATION_DURATION)
+					}
 
-					g.status = ANIMATING
-					cellCopy := *selectedCell
-					g.animations = append(g.animations, CreateCellAnimation(cellCopy, CREATE_CELL_ANIMATION_DURATION))
+					g.score += totalMergeScore
 				}
-
-				g.score += totalMergeScore
 			}
 		}
+
 	case FINISHED:
 		pressedKeys := inpututil.AppendJustPressedKeys(nil)
 		if len(pressedKeys) > 0 {
@@ -57,30 +58,6 @@ func (g *Game) Update() error {
 		if len(pressedKeys) > 0 {
 			ResetGame(g)
 		}
-	case ANIMATING:
-		for _, animation := range g.animations {
-
-			err := animation.Step()
-			if err != nil {
-				OnAnimationFinished(animation, g)
-			}
-
-			allAnimationsAreDone := true
-			for _, animation := range g.animations {
-				if animation.GetStatus() != ANIM_FINISHED {
-					allAnimationsAreDone = false
-					break
-				} else {
-					OnAnimationFinished(animation, g)
-				}
-			}
-
-			if allAnimationsAreDone {
-				g.animations = make([]Animation, 0)
-				g.status = RUNNING
-			}
-		}
-
 	default:
 		return errors.New("unhandled game status reached. exiting")
 	}
@@ -91,11 +68,6 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	switch g.status {
-	case ANIMATING:
-		drawBackground(g, screen)
-		drawBoard(g, screen)
-		drawScoreboard(g, screen, g.board.bg.x+g.board.bg.dx, g.board.bg.y)
-		drawAnimations(g, screen)
 	case RUNNING:
 		drawBackground(g, screen)
 		drawBoard(g, screen)
@@ -148,8 +120,24 @@ func drawBoard(g *Game, screen *ebiten.Image) {
 
 			screen.DrawImage(cellImg, op)
 
-			if cell.isRendered {
+			if cell.animation != nil {
+				if cell.animation.GetStatus() == ANIM_FINISHED {
+					c := &g.board.cells[cell.pos_x][cell.pos_y]
+					// TODO
+					// Decide if animation should handle the logic on complete or renderer
+					// c.animation.OnFinish(cell.animation, g)
+					c.animation = nil
+					c.isRendered = true
+					c.val = 2
+				} else {
+					drawAnimation(screen, g, &cell)
+					animErr := cell.animation.Step()
 
+					if animErr != nil {
+						panic("step called on finished animation. check your logic")
+					}
+				}
+			} else if cell.isRendered {
 				txtOp.ColorScale.ScaleWithColor(color.Black)
 				DrawCenteredText(screen, g.fontFace, strconv.Itoa(cell.val), cell.x+CELL_SIZE/2, cell.y+CELL_SIZE/2, txtOp)
 			}
@@ -186,30 +174,31 @@ func drawOverlay(g *Game, screen *ebiten.Image) {
 	screen.DrawImage(overlayImage, overlayOpt)
 }
 
-func drawAnimations(g *Game, screen *ebiten.Image) {
+func drawAnimation(screen *ebiten.Image, g *Game, cell *Cell) {
 
-	for _, animation := range g.animations {
+	if cell.animation == nil {
+		panic("invalid state. drawAnimation should not be called when animation does not exists")
+	}
 
-		switch animation.GetType() {
-		case ANIM_CREATE_CELL:
-			ca := animation.(*CreateAnimation)
-			c := ca.position
+	switch cell.animation.GetType() {
+	case ANIM_CREATE_CELL:
+		ca := cell.animation.(*CreateAnimation)
+		c := ca.position
 
-			cellImg := ebiten.NewImage(ca.currentSize, ca.currentSize)
-			cellImg.Fill(GetColor(2))
+		cellImg := ebiten.NewImage(ca.currentSize, ca.currentSize)
+		cellImg.Fill(GetColor(2))
 
-			cx := c.x + CELL_SIZE/2 // center x
-			cy := c.y + CELL_SIZE/2 // center y
+		cx := c.x + CELL_SIZE/2 // center x
+		cy := c.y + CELL_SIZE/2 // center y
 
-			cx = cx - ca.currentSize/2 // center x offsetted by current size
-			cy = cy - ca.currentSize/2 // center y offsetted by current size
+		cx = cx - ca.currentSize/2 // center x offsetted by current size
+		cy = cy - ca.currentSize/2 // center y offsetted by current size
 
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64(cx), float64(cy))
-			screen.DrawImage(cellImg, op)
-		default:
-			panic("unreachable")
-		}
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(float64(cx), float64(cy))
+		screen.DrawImage(cellImg, op)
+	default:
+		panic("unreachable")
 	}
 }
 
